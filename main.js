@@ -1260,6 +1260,142 @@ function saveEntry(type, id, values) {
         });
 }
 
+function llmMarkdown() {
+    const inline = function (value) {
+        return String(value || "")
+            .replace(/\s+/g, " ")
+            .trim();
+    };
+    const compareActivities = function (a, b) {
+        return (
+            (a.date || "9999").localeCompare(b.date || "9999") ||
+            (a.time || "9999").localeCompare(b.time || "9999") ||
+            inline(a.title).localeCompare(inline(b.title), "es")
+        );
+    };
+    const destinations = state.destinations.slice().sort(function (a, b) {
+        return (
+            (a.from || "9999").localeCompare(b.from || "9999") ||
+            (a.to || "9999").localeCompare(b.to || "9999") ||
+            inline(a.name).localeCompare(inline(b.name), "es")
+        );
+    });
+    const destinationIds = new Set(
+        destinations.map(function (item) {
+            return item.id;
+        }),
+    );
+    const trip = state.trip;
+    const travelers = (trip.travelers || [])
+        .filter(Boolean)
+        .map(inline)
+        .join(", ");
+    const tripDates =
+        trip.startDate || trip.endDate
+            ? formatDate(trip.startDate) + " – " + formatDate(trip.endDate)
+            : "Fechas por definir";
+    const lines = [
+        "# " + inline(trip.name || "Un viaje por Europa"),
+        "",
+        tripDates +
+            " · Viajeros: " +
+            (travelers || "Por definir") +
+            " · Presupuesto: " +
+            formatMoney(trip.budget),
+        "",
+        "## Destinos",
+        "",
+    ];
+
+    if (!destinations.length) lines.push("_No hay destinos guardados._", "");
+    destinations.forEach(function (destination) {
+        lines.push(
+            "### " + inline(destination.name || "Destino sin nombre"),
+            "",
+            "- País: " + inline(destination.country || "Por definir"),
+            "- Fechas: " +
+                formatDate(destination.from) +
+                " – " +
+                formatDate(destination.to),
+        );
+        if (destination.notes)
+            lines.push("- Notas: " + inline(destination.notes));
+        lines.push("", "#### Actividades", "");
+        const activities = state.itinerary
+            .filter(function (activity) {
+                return activity.destinationId === destination.id;
+            })
+            .sort(compareActivities);
+        if (!activities.length)
+            lines.push("_No hay actividades asignadas._", "");
+        activities.forEach(function (activity) {
+            lines.push(
+                "- **" + inline(activity.title || "Actividad sin título") + "**",
+                "  - Fecha: " +
+                    formatDate(activity.date) +
+                    " · Hora: " +
+                    inline(activity.time || "Sin hora"),
+                "  - Ubicación: " + inline(activity.location || "Por definir"),
+                "  - Categoría: " + inline(activity.category || "Por definir"),
+            );
+            if (activity.notes)
+                lines.push("  - Notas: " + inline(activity.notes));
+        });
+        lines.push("");
+    });
+
+    const unassignedActivities = state.itinerary
+        .filter(function (activity) {
+            return !destinationIds.has(activity.destinationId);
+        })
+        .sort(compareActivities);
+    if (unassignedActivities.length) {
+        lines.push("## Actividades sin destino", "");
+        unassignedActivities.forEach(function (activity) {
+            lines.push(
+                "- **" + inline(activity.title || "Actividad sin título") + "**",
+                "  - Fecha: " +
+                    formatDate(activity.date) +
+                    " · Hora: " +
+                    inline(activity.time || "Sin hora"),
+                "  - Ubicación: " + inline(activity.location || "Por definir"),
+                "  - Categoría: " + inline(activity.category || "Por definir"),
+            );
+            if (activity.notes)
+                lines.push("  - Notas: " + inline(activity.notes));
+        });
+        lines.push("");
+    }
+
+    lines.push("## Reservas", "");
+    const reservations = state.reservations.slice().sort(function (a, b) {
+        return (
+            (a.date || "9999").localeCompare(b.date || "9999") ||
+            inline(a.title).localeCompare(inline(b.title), "es")
+        );
+    });
+    if (!reservations.length) lines.push("_No hay reservas guardadas._", "");
+    reservations.forEach(function (reservation) {
+        lines.push(
+            "- **" + inline(reservation.title || "Reserva sin título") + "**",
+            "  - Fecha: " + formatDate(reservation.date),
+            "  - Tipo: " + inline(reservation.type || "Otro"),
+            "  - Estado: " + inline(reservation.status || "Pendiente"),
+        );
+        if (reservation.detail)
+            lines.push("  - Detalle: " + inline(reservation.detail));
+    });
+    return lines.join("\n").trim() + "\n";
+}
+async function copyLlmMarkdown() {
+    try {
+        await navigator.clipboard.writeText(llmMarkdown());
+        showToast("Plan para LLM copiado");
+    } catch (error) {
+        showToast("No se pudo copiar el plan para LLM");
+    }
+}
+
 document.addEventListener("click", function (event) {
     const target = event.target.closest("[data-action], [data-tab]");
     if (!target) return;
@@ -1339,6 +1475,7 @@ document.addEventListener("click", function (event) {
     }
     if (action === "close-dialog") dialog.close();
     if (action === "export") exportState();
+    if (action === "copy-llm") copyLlmMarkdown();
     if (action === "import") document.querySelector("#import-file").click();
     if (
         action === "reset" &&

@@ -476,7 +476,8 @@ h1 {
     align-items: center;
     padding: 5px 8px;
     border-radius: 7px;
-    background: var(--ink);
+    background: var(--muted);
+    
     color: var(--olive-dark);
     font-size: 0.72rem;
     font-weight: 800;
@@ -817,6 +818,11 @@ dialog::backdrop {
 }
 .hidden {
     display: none !important;
+}
+.llm-action {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 24px;
 }
 .toast {
     position: fixed;
