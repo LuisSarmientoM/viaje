@@ -236,7 +236,7 @@ h1 {
     margin-bottom: 22px;
     border: 1px solid var(--line);
     border-radius: 14px;
-    background: rgba(255, 253, 249, 0.62);
+    background: var(--line);
 }
 .tab {
     flex: 0 0 auto;
