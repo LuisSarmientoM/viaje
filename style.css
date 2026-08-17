@@ -126,7 +126,7 @@ textarea:focus-visible {
     color: var(--ink);
 }
 .primary-button {
-    background: var(--olive-dark);
+    background: var(--olive);
     color: #fff;
     padding: 11px 16px;
     border-radius: 11px;
@@ -476,7 +476,7 @@ h1 {
     align-items: center;
     padding: 5px 8px;
     border-radius: 7px;
-    background: var(--surface-2);
+    background: var(--ink);
     color: var(--olive-dark);
     font-size: 0.72rem;
     font-weight: 800;
