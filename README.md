@@ -2,6 +2,9 @@
 
 Aplicación estática de una sola página con respaldo compartido opcional mediante Cloudflare Pages Functions y D1.
 
+<img width="1920" height="1440" alt="859shots_so" src="https://github.com/user-attachments/assets/2d4748db-07ac-48b6-8389-ea0088726461" />
+
+
 ## Comportamiento de la sesión
 
 1. Sin cookie válida, la aplicación funciona únicamente con `localStorage`.

@@ -126,7 +126,7 @@ textarea:focus-visible {
     color: var(--ink);
 }
 .primary-button {
-    background: var(--olive-dark);
+    background: var(--olive);
     color: #fff;
     padding: 11px 16px;
     border-radius: 11px;
