@@ -93,6 +93,17 @@ test("rechaza formas profundas, números y referencias inválidas", () => {
     assert.equal(isValidState(missingDestination), false);
 });
 
+test("acepta imageId opcional y rechaza referencias de imagen inseguras", () => {
+    const withImages = validState();
+    withImages.destinations[0].imageId = "123e4567-e89b-42d3-a456-426614174000";
+    withImages.itinerary[0].imageId = "123e4567-e89b-42d3-a456-426614174001";
+    assert.equal(isValidState(withImages), true);
+
+    const invalidImage = validState();
+    invalidImage.destinations[0].imageId = "../otra-ruta";
+    assert.equal(isValidState(invalidImage), false);
+});
+
 test("rechaza IDs de inyección y escapa texto en sinks HTML", () => {
     const injectedId = validState();
     injectedId.tasks[0].id = 'task-1" onmouseover="alert(1)';

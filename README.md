@@ -22,6 +22,7 @@ Requisitos: Node.js y Wrangler.
 ```bash
 cp .dev.vars.example .dev.vars
 npx wrangler d1 create viaje
+npx wrangler r2 bucket create viaje-images
 ```
 
 Copia el `database_id` que devuelva Wrangler dentro de `wrangler.jsonc`, reemplazando:
@@ -47,7 +48,12 @@ Abre la URL que indique Wrangler y añade `?invite=` con el mismo valor de `INVI
 ## Despliegue en Cloudflare Pages
 
 1. Crea el proyecto Pages conectado a este repositorio o usa Wrangler.
-2. Configura `database_id` en `wrangler.jsonc`.
+2. Configura `database_id` en `wrangler.jsonc` y crea el bucket privado `viaje-images` si todavía no existe:
+
+   ```bash
+   npx wrangler r2 bucket create viaje-images
+   ```
+
 3. Crea la base de datos remota y aplica la migración:
 
    ```bash
@@ -72,6 +78,8 @@ Comparte el enlace con `?invite=...` únicamente con las personas que deban acce
 ## Notas
 
 - D1 almacena el viaje como un documento JSON versionado; la tabla de sesiones mantiene el control de acceso.
+- R2 almacena las portadas en el bucket privado `viaje-images`. Tanto la subida como la lectura pasan por Pages Functions y exigen una sesión persistida.
+- Al reemplazar o eliminar una portada, el objeto anterior puede quedar sin referencia en R2. No hay limpieza automática de huérfanos; debe añadirse solo si el volumen lo justifica.
 - Las actualizaciones tienen control optimista de versiones. Si los dos dispositivos guardan a la vez, se conserva la versión remota y se muestra un aviso.
 - `SESSION_SECRET` e `INVITE_TOKEN` deben ser secretos diferentes y aleatorios.
 - Para revocar el acceso, cambia `SESSION_SECRET` y vuelve a desplegar; las cookies anteriores dejarán de ser válidas.

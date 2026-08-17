@@ -2,6 +2,9 @@ import { escapeHTML, isValidState } from "./state-validation.js";
 
 const STORAGE_NAME = "europa-together-planner-v1";
 const DIRTY_STORAGE_NAME = "europa-together-planner-dirty";
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const DEFAULT_STATE = {
     trip: {
         name: "Un viaje por Europa",
@@ -101,6 +104,33 @@ function uid(prefix) {
         Date.now().toString(36) +
         Math.random().toString(36).slice(2, 7)
     );
+}
+function coverPlaceholder(item, className) {
+    return item.imageId
+        ? '<div class="cover-image ' +
+              className +
+              '" data-image-id="' +
+              escapeHTML(item.imageId) +
+              '"></div>'
+        : "";
+}
+function hydrateCoverImages() {
+    document.querySelectorAll(".cover-image[data-image-id]").forEach(function (cover) {
+        const imageId = cover.dataset.imageId;
+        if (!IMAGE_ID_PATTERN.test(imageId)) {
+            cover.remove();
+            return;
+        }
+        const image = document.createElement("img");
+        image.alt = "";
+        image.decoding = "async";
+        image.addEventListener("error", function () {
+            cover.closest(".has-cover")?.classList.remove("has-cover");
+            cover.remove();
+        });
+        image.src = "/api/images/" + encodeURIComponent(imageId);
+        cover.replaceChildren(image);
+    });
 }
 function normalizeState(stored) {
     if (!stored) return clone(DEFAULT_STATE);
@@ -448,6 +478,7 @@ function render() {
     renderExpenses();
     renderReservations();
     renderTasks();
+    hydrateCoverImages();
 }
 function renderHeader() {
     const trip = state.trip;
@@ -519,8 +550,13 @@ function renderOverview() {
                                       })
                                     : "")
                               : "Sin fechas";
+                      const cover = coverPlaceholder(item, "destination-cover");
                       return (
-                          '<article class="destination"><div class="destination-actions"><button class="small-icon" type="button" data-action="edit-destination" data-id="' +
+                          '<article class="destination' +
+                          (cover ? " has-cover" : "") +
+                          '">' +
+                          cover +
+                          '<div class="destination-actions"><button class="small-icon" type="button" data-action="edit-destination" data-id="' +
                           escapeHTML(item.id) +
                           '" aria-label="Editar destino">✎</button><button class="small-icon" type="button" data-action="delete-destination" data-id="' +
                           escapeHTML(item.id) +
@@ -728,8 +764,13 @@ function renderItinerary() {
     );
 }
 function eventHTML(item) {
+    const cover = coverPlaceholder(item, "event-cover");
     return (
-        '<article class="event"><div class="event-top"><div><h3>' +
+        '<article class="event' +
+        (cover ? " has-cover" : "") +
+        '">' +
+        cover +
+        '<div class="event-top"><div><h3>' +
         escapeHTML(item.title) +
         '</h3><div class="item-meta">' +
         (item.time ? escapeHTML(item.time) + " · " : "") +
@@ -902,6 +943,7 @@ function openEntry(type, id) {
     document.querySelector("#dialog-title").textContent = titles[type];
     dialog.dataset.type = type;
     dialog.dataset.id = id || "";
+    setFormError("");
     const existing = id
         ? state[
               type === "trip"
@@ -974,7 +1016,11 @@ function fieldsFor(type, item) {
             escapeHTML(item.from || "") +
             '"></div><div class="field"><label for="f-to">Salida</label><input id="f-to" name="to" type="date" value="' +
             escapeHTML(item.to || "") +
-            '"></div><div class="field full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" placeholder="Qué quieren hacer allí...">' +
+            '"></div><div class="field full"><label for="f-image">Imagen de portada</label><input id="f-image" name="image" type="file" accept="image/jpeg,image/png,image/webp"><span class="field-help">' +
+            (item.imageId
+                ? "La imagen actual se conserva si no eliges otra. "
+                : "") +
+            'JPEG, PNG o WebP, máximo 5 MiB.</span></div><div class="field full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" placeholder="Qué quieren hacer allí...">' +
             escapeHTML(item.notes || "") +
             "</textarea></div></div>"
         );
@@ -1009,7 +1055,11 @@ function fieldsFor(type, item) {
                     );
                 })
                 .join("") +
-            '</select></div><div class="field full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" placeholder="Entradas, dirección, ideas...">' +
+                '</select></div><div class="field full"><label for="f-image">Imagen de portada</label><input id="f-image" name="image" type="file" accept="image/jpeg,image/png,image/webp"><span class="field-help">' +
+                (item.imageId
+                    ? "La imagen actual se conserva si no eliges otra. "
+                    : "") +
+                'JPEG, PNG o WebP, máximo 5 MiB.</span></div><div class="field full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" placeholder="Entradas, dirección, ideas...">' +
             escapeHTML(item.notes || "") +
             "</textarea></div></div>"
         );
@@ -1077,6 +1127,61 @@ function fieldsFor(type, item) {
 function formValues(form) {
     return Object.fromEntries(new FormData(form).entries());
 }
+function setFormError(message) {
+    const form = document.querySelector("#entry-form");
+    let node = form.querySelector(".form-error");
+    if (!message) {
+        node?.remove();
+        return;
+    }
+    if (!node) {
+        node = document.createElement("p");
+        node.className = "form-error";
+        node.setAttribute("role", "alert");
+        form.insertBefore(node, form.querySelector(".dialog-foot"));
+    }
+    node.textContent = message;
+}
+async function uploadImage(file) {
+    if (!sessionState.canPersist)
+        throw new Error(
+            "Necesitas activar el respaldo compartido antes de subir una imagen.",
+        );
+    if (!ACCEPTED_IMAGE_TYPES.has(file.type))
+        throw new Error("Usa una imagen JPEG, PNG o WebP.");
+    if (file.size > MAX_IMAGE_BYTES)
+        throw new Error("La imagen supera el máximo de 5 MiB.");
+
+    const response = await fetch("/api/images", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Content-Type": file.type },
+        body: file,
+    });
+    let payload = {};
+    try {
+        payload = await response.json();
+    } catch {
+        // The status still determines failure when an intermediary returns non-JSON.
+    }
+    if (!response.ok)
+        throw new Error(payload.error || "No se pudo subir la imagen.");
+    if (!IMAGE_ID_PATTERN.test(payload.imageId))
+        throw new Error("El servidor devolvió una referencia de imagen no válida.");
+    return payload.imageId;
+}
+function existingImageId(type, id) {
+    const collection =
+        type === "destination"
+            ? state.destinations
+            : type === "activity"
+              ? state.itinerary
+              : [];
+    return collection.find(function (item) {
+        return item.id === id;
+    })?.imageId;
+}
 function saveEntry(type, id, values) {
     if (type === "trip") {
         state.trip = {
@@ -1099,6 +1204,7 @@ function saveEntry(type, id, values) {
                 from: values.from,
                 to: values.to,
                 notes: values.notes,
+                ...(values.imageId ? { imageId: values.imageId } : {}),
             },
         ],
         activity: [
@@ -1111,6 +1217,7 @@ function saveEntry(type, id, values) {
                 category: values.category,
                 destinationId: values.destinationId,
                 notes: values.notes,
+                ...(values.imageId ? { imageId: values.imageId } : {}),
             },
         ],
         expense: [
@@ -1262,18 +1369,41 @@ document.addEventListener("change", function (event) {
 });
 document
     .querySelector("#entry-form")
-    .addEventListener("submit", function (event) {
+    .addEventListener("submit", async function (event) {
         event.preventDefault();
+        const form = event.currentTarget;
+        const submitButton = form.querySelector('[type="submit"]');
+        if (submitButton.disabled) return;
+
         const type = dialog.dataset.type;
-        saveEntry(type, dialog.dataset.id, formValues(event.currentTarget));
-        saveState();
-        render();
-        dialog.close();
-        showToast(
-            type === "trip"
-                ? "Datos del viaje guardados"
-                : "Guardado correctamente",
-        );
+        const id = dialog.dataset.id;
+        const values = formValues(form);
+        const file = values.image;
+        const hasImage = file instanceof File && Boolean(file.name);
+        delete values.image;
+        setFormError("");
+        submitButton.disabled = true;
+        submitButton.textContent = hasImage ? "Subiendo…" : "Guardando…";
+        try {
+            const imageId = hasImage
+                ? await uploadImage(file)
+                : existingImageId(type, id);
+            if (imageId) values.imageId = imageId;
+            saveEntry(type, id, values);
+            saveState();
+            render();
+            dialog.close();
+            showToast(
+                type === "trip"
+                    ? "Datos del viaje guardados"
+                    : "Guardado correctamente",
+            );
+        } catch (error) {
+            setFormError(error.message || "No se pudo guardar.");
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = "Guardar";
+        }
     });
 document
     .querySelector("#import-file")

@@ -1,4 +1,5 @@
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
+const IMAGE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
@@ -41,6 +42,10 @@ function allStrings(values) {
     return Array.isArray(values) && values.every(isString);
 }
 
+function hasOptionalImageId(value) {
+    return value.imageId === undefined || IMAGE_ID_PATTERN.test(value.imageId);
+}
+
 export function isValidState(state) {
     if (
         !isObject(state) ||
@@ -74,7 +79,8 @@ export function isValidState(state) {
             !isString(item.country) ||
             !isDate(item.from) ||
             !isDate(item.to) ||
-            !isString(item.notes)
+            !isString(item.notes) ||
+            !hasOptionalImageId(item)
         )
             return false;
         destinationIds.add(item.id);
@@ -98,7 +104,8 @@ export function isValidState(state) {
             !isString(item.category) ||
             !isString(item.destinationId) ||
             (item.destinationId && !destinationIds.has(item.destinationId)) ||
-            !isString(item.notes)
+            !isString(item.notes) ||
+            !hasOptionalImageId(item)
         )
             return false;
     }

@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "dev": "npx wrangler pages dev .",
-        "check": "node --check main.js && node --check state-validation.js && node --check functions/lib/auth.js && node --check functions/api/session.js && node --check functions/api/trip.js && node --test test/*.test.js"
+        "check": "node --check main.js && node --check state-validation.js && node --check functions/lib/auth.js && node --check functions/lib/images.js && node --check functions/api/session.js && node --check functions/api/trip.js && node --check functions/api/images.js && node --check 'functions/api/images/[id].js' && node --test test/*.test.js"
     },
     "displayName": "Planificador de viaje a Europa"
 }
