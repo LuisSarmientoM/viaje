@@ -1,0 +1,10 @@
+{
+    "name": "viaje",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "npx wrangler pages dev .",
+        "check": "node --check main.js && node --check state-validation.js && node --check functions/lib/auth.js && node --check functions/api/session.js && node --check functions/api/trip.js && node --test test/*.test.js"
+    },
+    "displayName": "Planificador de viaje a Europa"
+}

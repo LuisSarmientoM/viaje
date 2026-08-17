@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f3ef">
+  <title>Europa · Planificador de viaje</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Inicio del planificador">
+        <span class="brand-mark">✦</span>
+        <span>Europa, juntos</span>
+      </a>
+      <div class="top-actions">
+        <span id="sync-status" class="sync-status" data-state="local">Solo este navegador</span>
+        <button class="ghost-button activation-button" type="button" data-action="activate">Activar respaldo</button>
+        <button class="ghost-button" type="button" data-action="import">Importar</button>
+        <button class="ghost-button" type="button" data-action="export">Exportar</button>
+        <button class="icon-button" type="button" data-action="reset" aria-label="Reiniciar viaje" title="Reiniciar viaje">↺</button>
+        <input id="import-file" class="hidden" type="file" accept="application/json,.json">
+      </div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Nuestro próximo capítulo</p>
+        <h1 id="trip-title">Un viaje por Europa</h1>
+        <p id="trip-copy" class="hero-copy">Organicen las ciudades, los planes y los gastos en un solo lugar. El respaldo compartido se activa después de validar su acceso.</p>
+        <button class="primary-button" type="button" data-action="edit-trip">Editar viaje</button>
+      </div>
+      <aside class="hero-card" aria-label="Resumen del presupuesto">
+        <div class="hero-card-label"><span>Presupuesto estimado</span><span id="budget-currency">EUR</span></div>
+        <strong id="budget-total">€ 0</strong>
+        <div class="progress" aria-label="Presupuesto utilizado"><span id="budget-progress"></span></div>
+        <div class="hero-card-foot"><span id="budget-spent">€ 0 gastados</span><span id="budget-remaining">€ 0 disponibles</span></div>
+      </aside>
+    </section>
+
+    <nav class="tabs" aria-label="Secciones del viaje">
+      <button class="tab active" type="button" data-tab="overview">Resumen</button>
+      <button class="tab" type="button" data-tab="itinerary">Itinerario</button>
+      <button class="tab" type="button" data-tab="expenses">Gastos</button>
+      <button class="tab" type="button" data-tab="reservations">Reservas</button>
+      <button class="tab" type="button" data-tab="tasks">Pendientes</button>
+    </nav>
+
+    <section id="panel-overview" class="panel active">
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Duración</div><div id="stat-days" class="stat-value">—</div></div>
+        <div class="stat"><div class="stat-label">Destinos</div><div id="stat-destinations" class="stat-value">0</div></div>
+        <div class="stat"><div class="stat-label">Gastado</div><div id="stat-spent" class="stat-value">€ 0</div></div>
+        <div class="stat"><div class="stat-label">Por hacer</div><div id="stat-tasks" class="stat-value">0</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <section class="card">
+            <div class="section-head"><div><h2>Ruta del viaje</h2><p>Las paradas que no quieren perderse.</p></div><button class="text-button" type="button" data-action="add-destination">+ Añadir</button></div>
+            <div id="destinations-list" class="destination-grid"></div>
+          </section>
+          <section class="card">
+            <div class="section-head"><div><h2>Cómo van los gastos</h2><p>Una referencia rápida para mantener el equilibrio.</p></div></div>
+            <div id="balance-list" class="balance"></div>
+          </section>
+        </div>
+        <div>
+          <section class="card">
+            <div class="section-head"><div><h2>Próximos planes</h2><p>Lo primero que aparece en el itinerario.</p></div><button class="text-button" type="button" data-action="add-activity">+ Añadir</button></div>
+            <div id="next-list" class="next-list"></div>
+          </section>
+          <section class="card">
+            <div class="section-head"><div><h2>Notas rápidas</h2><p>Una idea o recordatorio para el viaje.</p></div><button class="text-button" type="button" data-action="add-task">+ Añadir</button></div>
+            <div id="quick-tasks" class="task-list"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-itinerary" class="panel">
+      <div class="toolbar"><div><h2>Itinerario</h2><p>Una vista flexible de cada día, sin llenar la agenda de más.</p></div><div class="toolbar-actions"><button class="ghost-button" type="button" data-action="add-destination">+ Destino</button><button class="primary-button" type="button" data-action="add-activity">+ Actividad</button></div></div>
+      <div id="itinerary-destinations" class="summary-strip"></div>
+      <div id="itinerary-list" class="timeline"></div>
+    </section>
+
+    <section id="panel-expenses" class="panel">
+      <div class="toolbar"><div><h2>Gastos</h2><p>Registren lo que van pagando y vean el total acumulado.</p></div><button class="primary-button" type="button" data-action="add-expense">+ Registrar gasto</button></div>
+      <section class="card"><div id="expenses-table"></div></section>
+    </section>
+
+    <section id="panel-reservations" class="panel">
+      <div class="toolbar"><div><h2>Reservas</h2><p>Vuelos, alojamientos, trenes y cualquier confirmación importante.</p></div><button class="primary-button" type="button" data-action="add-reservation">+ Añadir reserva</button></div>
+      <section class="card"><div id="reservations-list" class="reservation-list"></div></section>
+    </section>
+
+    <section id="panel-tasks" class="panel">
+      <div class="toolbar"><div><h2>Pendientes</h2><p>Pequeñas cosas que conviene resolver antes de despegar.</p></div><button class="primary-button" type="button" data-action="add-task">+ Añadir pendiente</button></div>
+      <section class="card"><div id="tasks-list" class="task-list"></div></section>
+    </section>
+  </main>
+
+  <dialog id="entry-dialog">
+    <div class="dialog-head"><h2 id="dialog-title">Añadir</h2><button class="icon-button" type="button" data-action="close-dialog" aria-label="Cerrar">×</button></div>
+    <div class="dialog-body"><form id="entry-form"><div id="dialog-fields"></div><div class="dialog-foot"><button class="ghost-button" type="button" data-action="close-dialog">Cancelar</button><button class="primary-button" type="submit">Guardar</button></div></form></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
